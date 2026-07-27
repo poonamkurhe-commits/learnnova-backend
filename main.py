@@ -48,6 +48,18 @@ limiter = Limiter(key_func=get_remote_address)
 # --- Modern Lifespan Event Handler (Issue 4 from previous & DB indexes) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Validate critical environment variables at startup (not at import time)
+    missing = []
+    if not os.getenv("JWT_SECRET"):
+        missing.append("JWT_SECRET")
+    if not os.getenv("GROQ_API_KEY"):
+        missing.append("GROQ_API_KEY")
+    if not os.getenv("MONGO_URI"):
+        missing.append("MONGO_URI")
+    if missing:
+        logger.error(f"🚨 MISSING REQUIRED ENV VARS: {', '.join(missing)}")
+        logger.error("Go to Render Dashboard → Your Service → Environment → Add these variables")
+
     try:
         await db.users.create_index("email", unique=True)
         logger.info("MongoDB unique index on 'email' verified successfully.")
@@ -60,7 +72,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to create unique index on session_id: {e}")
     
-    logger.info("Startup complete. LearnNova AI Production Backend is ready.")
+    logger.info("✅ Startup complete. LearnNova AI Production Backend is ready.")
     yield
 
 app = FastAPI(
@@ -94,18 +106,18 @@ client = AsyncIOMotorClient(MONGO_URI, **client_kwargs)
 db = client[DB_NAME]
 
 # --- Auth Security Config ---
-JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET is missing in .env")
+    logger.warning("⚠️  JWT_SECRET is not set — set it in Render Environment variables!")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 if not GROQ_API_KEY:
-    raise RuntimeError("GROQ_API_KEY not found in .env")
+    logger.warning("⚠️  GROQ_API_KEY is not set — set it in Render Environment variables!")
 
 groq_client = OpenAI(
     base_url="https://api.groq.com/openai/v1",

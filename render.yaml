@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: learnnova-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DB_NAME
+        value: Lnnova_DB
+      - key: ALGORITHM
+        value: HS256
+      - key: JWT_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MONGO_URI
+        sync: false
