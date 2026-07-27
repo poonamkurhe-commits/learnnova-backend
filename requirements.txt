@@ -31,7 +31,7 @@ openai
 # OCR & Images
 # ==========================
 easyocr
-opencv-python
+opencv-python-headless
 Pillow
 
 # ==========================
@@ -62,11 +62,12 @@ huggingface-hub
 faiss-cpu
 
 # ==========================
-# Torch
+# Torch (CPU-only — required for low-memory cloud deploys like Render free tier)
+# Use CPU-only builds to avoid ~2GB CUDA overhead
 # ==========================
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
 torchvision
-torchaudio
 
 # ==========================
 # Utilities

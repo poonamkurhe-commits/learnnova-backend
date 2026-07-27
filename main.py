@@ -112,8 +112,14 @@ groq_client = OpenAI(
     api_key=GROQ_API_KEY
 )
 
-logger.info("Loading Sentence Transformer model...")
-embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+# --- Lazy Loading Embedding Model (prevents OOM on startup in low-memory environments) ---
+_embedding_model = None
+def get_embedding_model():
+    global _embedding_model
+    if _embedding_model is None:
+        logger.info("Lazy loading SentenceTransformer model...")
+        _embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    return _embedding_model
 
 # --- Lazy Loading OCR Reader (Issue 7) ---
 _ocr_reader = None
@@ -378,6 +384,7 @@ async def upload_document(
             raise HTTPException(status_code=400, detail="No chunks generated.")
 
         # Batch encode embeddings with 64 batch size for maximum speed
+        embedding_model = get_embedding_model()
         embeddings = embedding_model.encode(
             chunks,
             batch_size=64,
@@ -600,7 +607,7 @@ async def get_relevant_context_for_user(user_id: str, query_text: str, k_per_doc
         return ""
 
     all_retrieved_chunks = []
-    query_embedding = embedding_model.encode([query_text], convert_to_numpy=True).astype('float32')
+    query_embedding = get_embedding_model().encode([query_text], convert_to_numpy=True).astype('float32')
 
     for doc in user_docs:
         idx_path = doc["index_path"]
