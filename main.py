@@ -84,10 +84,21 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Configuration
-allow_origins_list = os.getenv("ALLOWED_ORIGINS", "*").split(",") if os.getenv("ALLOWED_ORIGINS") else ["*"]
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+env_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+default_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://learn-nova-frontend-ojyg2u2zy-team-poonam.vercel.app"
+]
+allow_origins_list = list(set(env_origins + default_origins))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins_list,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1317,4 +1328,4 @@ async def health():
 
 @app.get("/")
 async def root():
-    return {"status": "online", "message": "LearnNova AI Enterprise Production Backend is active."}
+    return {"status": "online", "message": "LearnNova AI Enterprise Production Backend is active."}
