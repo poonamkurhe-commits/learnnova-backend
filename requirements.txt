@@ -1,0 +1,77 @@
+# ==========================
+# FastAPI
+# ==========================
+fastapi
+uvicorn[standard]
+python-dotenv
+python-multipart
+aiofiles
+
+# ==========================
+# Database
+# ==========================
+motor
+pymongo
+certifi
+
+# ==========================
+# Authentication
+# ==========================
+passlib[bcrypt]
+bcrypt==3.2.2
+PyJWT
+email-validator
+
+# ==========================
+# AI
+# ==========================
+openai
+
+# ==========================
+# OCR & Images
+# ==========================
+easyocr
+opencv-python
+Pillow
+
+# ==========================
+# PDF & Documents
+# ==========================
+PyPDF2
+python-docx
+
+# ==========================
+# LangChain
+# ==========================
+langchain
+langchain-community
+langchain-text-splitters
+langchain-huggingface
+langchain-groq
+
+# ==========================
+# Embeddings
+# ==========================
+sentence-transformers
+transformers
+huggingface-hub
+
+# ==========================
+# Vector Store
+# ==========================
+faiss-cpu
+
+# ==========================
+# Torch
+# ==========================
+torch
+torchvision
+torchaudio
+
+# ==========================
+# Utilities
+# ==========================
+numpy
+requests
+tqdm
+slowapi
