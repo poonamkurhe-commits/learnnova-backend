@@ -89,7 +89,8 @@ default_origins = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://learn-nova-frontend-ojyg2u2zy-team-poonam.vercel.app"
+    "https://learn-nova-frontend-idcsey7v7-team-poonam.vercel.app",
+    "https://learn-nova-frontend-ojyg2u2zy-team-poonam.vercel.app",
 ]
 allow_origins_list = list(set(env_origins + default_origins))
 
