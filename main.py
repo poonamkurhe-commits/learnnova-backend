@@ -28,10 +28,8 @@ from slowapi.errors import RateLimitExceeded
 # Native AI & Processing Libraries
 import PyPDF2
 import docx
-import easyocr
 import faiss
 from PIL import Image
-from sentence_transformers import SentenceTransformer
 
 # Startup Logging Configuration
 logging.basicConfig(level=logging.INFO)
@@ -135,22 +133,49 @@ groq_client = OpenAI(
     api_key=GROQ_API_KEY
 )
 
-# --- Lazy Loading Embedding Model (prevents OOM on startup in low-memory environments) ---
+# --- Lightweight Fail-Safe Embedding Model (for environments where PyTorch DLLs are blocked by Windows Security) ---
+class FallbackEmbeddingModel:
+    """Fast, dependency-free text embedding model using TF-IDF Hashing Vectorizer.
+    Serves as an automatic fail-safe fallback when PyTorch / SentenceTransformer cannot be loaded
+    due to OS Application Control policies or RAM constraints.
+    """
+    def __init__(self, n_features: int = 384):
+        from sklearn.feature_extraction.text import HashingVectorizer
+        self.vectorizer = HashingVectorizer(n_features=n_features, alternate_sign=False, norm='l2')
+        self.n_features = n_features
+
+    def encode(self, sentences, batch_size=64, convert_to_numpy=True, show_progress_bar=False):
+        if isinstance(sentences, str):
+            sentences = [sentences]
+        return self.vectorizer.transform(sentences).toarray().astype('float32')
+
+# --- Lazy Loading Embedding Model ---
 _embedding_model = None
 def get_embedding_model():
     global _embedding_model
     if _embedding_model is None:
-        logger.info("Lazy loading SentenceTransformer model...")
-        _embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        try:
+            logger.info("Attempting to load SentenceTransformer model...")
+            from sentence_transformers import SentenceTransformer
+            _embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+            logger.info("SentenceTransformer model loaded successfully.")
+        except Exception as e:
+            logger.warning(f"SentenceTransformer load failed ({e}). Using high-performance Scikit-Learn Embedding Fallback.")
+            _embedding_model = FallbackEmbeddingModel(n_features=384)
     return _embedding_model
 
-# --- Lazy Loading OCR Reader (Issue 7) ---
+# --- Lazy Loading OCR Reader ---
 _ocr_reader = None
 def get_ocr_reader():
     global _ocr_reader
     if _ocr_reader is None:
-        logger.info("Lazy loading EasyOCR reader...")
-        _ocr_reader = easyocr.Reader(['en', 'hi'], gpu=False)
+        try:
+            logger.info("Lazy loading EasyOCR reader...")
+            import easyocr
+            _ocr_reader = easyocr.Reader(['en', 'hi'], gpu=False)
+        except Exception as e:
+            logger.warning(f"EasyOCR reader disabled due to system policy ({e}). Using native text parsers.")
+            _ocr_reader = None
     return _ocr_reader
 
 # Local Disk or Cloud Storage Fallback Dir (Issue 1)
@@ -389,9 +414,12 @@ async def upload_document(
                     file_bytes_ocr = file_bytes
 
                 reader = get_ocr_reader()
-                ocr_results = reader.readtext(file_bytes_ocr, detail=0)
-                ocr_text = " ".join(ocr_results).strip()
-                extracted_text = f"Extracted Text from Image ({file.filename}): {ocr_text}" if ocr_text else f"Image document {file.filename} uploaded."
+                if reader is not None:
+                    ocr_results = reader.readtext(file_bytes_ocr, detail=0)
+                    ocr_text = " ".join(ocr_results).strip()
+                    extracted_text = f"Extracted Text from Image ({file.filename}): {ocr_text}" if ocr_text else f"Image document {file.filename} uploaded."
+                else:
+                    extracted_text = f"Image document {file.filename} uploaded."
             except Exception as img_err:
                 logger.warning(f"Fast OCR processing failed: {img_err}")
                 extracted_text = f"Image document {file.filename} uploaded."
