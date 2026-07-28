@@ -82,16 +82,30 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Configuration - Universal support for Vercel, localhost, and custom domains
+# NOTE: allow_origins=["*"] + allow_credentials=True is INVALID per CORS spec —
+# browsers reject this. We use explicit localhost origins + allow_origin_regex
+# for all HTTPS origins (covers any Vercel/Render deployment URL automatically).
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 env_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
 
+# Always include localhost for local dev; add any explicitly set origins from env
+base_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+]
+combined_origins = list(set(base_origins + env_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if not env_origins else env_origins + ["*"],
-    allow_origin_regex=r"https://.*",
+    # Never use ["*"] here — it breaks when allow_credentials=True.
+    # allow_origin_regex covers all HTTPS origins (Vercel, Render, etc.).
+    allow_origins=combined_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com|https://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # --- MongoDB Setup ---

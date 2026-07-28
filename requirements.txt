@@ -76,3 +76,4 @@ numpy
 requests
 tqdm
 slowapi
+scikit-learn

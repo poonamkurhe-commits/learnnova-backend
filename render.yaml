@@ -9,9 +9,16 @@ services:
         value: Lnnova_DB
       - key: ALGORITHM
         value: HS256
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: ALLOWED_ORIGINS
+        # Add ALL your Vercel deployment URLs here (comma-separated, no spaces)
+        # Update this whenever Vercel generates a new preview URL
+        value: "https://learn-nova-frontend-5i889qnj6-team-poonam.vercel.app,https://learn-nova-frontend-idcsey7v7-team-poonam.vercel.app"
       - key: JWT_SECRET
         sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: MONGO_URI
         sync: false
+
